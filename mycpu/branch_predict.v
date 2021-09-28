@@ -6,16 +6,16 @@ module branch_predict (
 
     input wire [31:0] pcF,
     input wire [31:0] pcM,
-
+    
+    input wire branchD,        // 译码阶段是否是跳转指令   
     input wire branchM,         // M阶段是否是分支指令
     input wire actual_takeM,    // 实际是否跳转
 
-    output wire branchD,        // 译码阶段是否是跳转指令   
+    
     output wire pred_takeD      // 预测是否跳转
 );
     wire pred_takeF;
     reg pred_takeF_r;
-    assign branchD = 1'b0;//判断译码阶段是否是分支指令
 
 // 定义参数
     parameter Strongly_not_taken = 2'b00,Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;

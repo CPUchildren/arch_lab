@@ -18,7 +18,7 @@ module mips(
 	controller controller(
 		clk,rst,
 		instrD, // 前in - 后out
-		regwriteW,regdstE,alusrcE,branchD,memWriteM,memtoRegW,jumpD, // input wire 
+		regwriteW,regdstE,alusrcE,branchD,branchM,memWriteM,memtoRegW,jumpD, // input wire 
     	// 数据冒险添加信号
 		regwriteE,regwriteM,memtoRegE,memtoRegM, // input wire 
 		alucontrolE
@@ -26,7 +26,7 @@ module mips(
 
 	datapath datapath(
 		clk,rst, // input wire 
-		regwriteW,regdstE,alusrcE,branchD,memWriteM,memtoRegW,jumpD, // input wire 
+		regwriteW,regdstE,alusrcE,branchD,branchM,memWriteM,memtoRegW,jumpD, // input wire 
 		alucontrolE, // input wire [2:0]
 		// 数据冒险添加信号
 		regwriteE,regwriteM,memtoRegE,memtoRegM, // input wire 
