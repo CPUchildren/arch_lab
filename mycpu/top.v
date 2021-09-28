@@ -18,7 +18,6 @@ mips mips(
 	pc,data_ram_waddr,data_ram_wdata
 );
 
-// XXX 这里需要下降沿读入指令，避免了pc和instr延迟一个周期
 instr_ram instr_ram (
     .clka(~clk),    // input wire clka
     .ena(instr_ram_ena),      // input wire ena
@@ -28,7 +27,6 @@ instr_ram instr_ram (
     .douta(instr)  // output wire [31 : 0] douta
 );
 
-// XXX 这里需要下降沿写入，避免了写回writeback阶段的数据冲突
 data_ram data_ram (
     .clka(~clk),    // input wire clka
     .ena(data_ram_ena),      // input wire ena

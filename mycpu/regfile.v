@@ -32,7 +32,6 @@ module regfile(
 
 	// 上升沿 ==>需要前推writeback值
 	// 下降沿 ==>可以不用前推writeback值
-	// XXX 原来是这里，果然要考虑writeback所有可能的情况，包括~clk的reg和mem
 	always @(negedge clk) begin
 		if(we3) begin
 			rf[wa3] <= wd3;
