@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 module controller (
-    input wire clk,rst,
+    input wire clk,rst,flushE,flushM,
     input wire [31:0]instrD,
     output wire regwriteW,regdstE,alusrcE,branchD,branchM,memWriteM,memtoRegW,jumpD,
     // 数据冒险添加信号
@@ -11,8 +11,10 @@ module controller (
     wire [1:0]aluop;
     wire [6:0]signsD,signsE,signsM,signsW;
     wire [2:0]alucontrolD;
-    wire ena;
+    wire ena,clear;
+    
     assign ena = 1'b1;
+    assign clear = 1'b0;
 
     // assign {regwrite,regdst,alusrc,branch,memWrite,memtoReg,aluop,jump} = temp;
     // signsD = {6regwrite,5regdst,4alusrc,3branch,2memWrite,1memtoReg,0jump}
@@ -33,10 +35,10 @@ module controller (
     main_dec main_dec(.op(instrD[31:26]),.signs(signsD),.aluop(aluop));
     alu_dec alu_dec(.aluop(aluop),.funct(instrD[5:0]),.alucontrol(alucontrolD));
 
-    flopenr #(3) dff2E(clk,rst,ena,alucontrolD,alucontrolE);
-    flopenr #(7) dff1E(clk,rst,ena,signsD,signsE);
-    flopenr #(7) dff1M(clk,rst,ena,signsE,signsM);
-    flopenr #(7) dff1W(clk,rst,ena,signsM,signsW);
+    flopenrc #(3) DFF_alucontrolE(clk,rst,flushE,ena,alucontrolD,alucontrolE);
+    flopenrc #(7) DFF_signsE     (clk,rst,flushE,ena,signsD,signsE);
+    flopenrc #(7) DFF_signsM     (clk,rst,flushM,ena,signsE,signsM);
+    flopenrc #(7) DFF_signsW     (clk,rst,clear ,ena,signsM,signsW);
 
 endmodule
 

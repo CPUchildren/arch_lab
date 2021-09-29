@@ -67,7 +67,7 @@ module branch_predict (
     always@(posedge clk) begin
         if(rst) begin
             for(j = 0; j < (1<<BHT_DEPTH); j=j+1) begin
-                BHT[j] <= 0;
+                BHT[j] <= 6'b000000;
             end
         end
         else if(branchM) begin
@@ -82,10 +82,12 @@ module branch_predict (
     always @(posedge clk) begin
         if(rst) begin
             for(i = 0; i < (1<<PHT_DEPTH); i=i+1) begin
-                PHT[i] <= Weakly_taken;
+                PHT[i] <= Strongly_taken;
+                // Weakly_taken 560ns
+                // Weakly_not_taken
             end
         end
-        else begin
+        else if(branchM) begin
             case(PHT[update_PHT_index])
                 // TODO 此处应该添加你的更新逻辑的代码
                 Strongly_not_taken: PHT[update_PHT_index] = actual_takeM ? Weakly_not_taken : Strongly_not_taken;

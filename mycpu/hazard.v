@@ -1,8 +1,14 @@
 `timescale 1ns/1ps
 module hazard (
-    input wire regwriteE,regwriteM,regwriteW,memtoRegE,memtoRegM,branchD,
-    input wire [4:0]rsD,rtD,rsE,rtE,reg_waddrM,reg_waddrW,reg_waddrE,
-    output wire stallF,stallD,flushE,forwardAD,forwardBD,
+    input wire regwriteE,regwriteM,regwriteW,
+    input wire memtoRegE,memtoRegM,
+    input wire branchM,actual_takeM,pred_takeM,
+    input wire [4:0]rsD,rtD,rsE,rtE,
+    input wire [4:0]reg_waddrM,reg_waddrW,reg_waddrE,
+    
+    output wire stallF,stallD,
+    output wire flushF,flushD,flushE,flushM,
+    output wire forwardAD,forwardBD,
     output wire[1:0] forwardAE, forwardBE
 );
     
@@ -20,13 +26,15 @@ module hazard (
     assign forwardBD = (rtD != 5'b0) & (rtD == reg_waddrM) & regwriteM;
     
     // 判断 decode 阶段 rs 或 rt 的地址是否是上一个lw 指令要写入的地址rtE；
-    wire lwstall,branch_stall; // 指令阻塞：lwstall 取数-使用型数据冒险
-    // assign lwstall = ((rsD == rtE) | (rtD == rtE)) & memtoRegE;
+    wire lwstall,branch_stall; 
     assign lwstall = ((rsD == rtE) | (rtD == rsE)) & memtoRegE;
-    assign branch_stall =   (branchD & regwriteE & ((rsD == reg_waddrE)|(rtD == reg_waddrE))) | // 执行阶段阻塞，前面有写入的数据
-                            (branchD & memtoRegM & ((rsD == reg_waddrM)|(rtD == reg_waddrM))); // 写回阶段阻塞
+    assign branch_stall = branchM & (actual_takeM != pred_takeM);
     
     assign stallF = lwstall | branch_stall;
     assign stallD = lwstall | branch_stall;
+    assign flushF = branch_stall; // flushF 动态分支预测错误
+    assign flushD = branch_stall; // lwstall | 
     assign flushE = lwstall | branch_stall;
+    assign flushM = branch_stall; // lwstall | 
+
 endmodule
