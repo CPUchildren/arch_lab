@@ -18,7 +18,7 @@ wire [31:0]pcD,pc_plus4D,pc_branchD;
 wire [31:0]rd1D,rd2D,branch_rd1D,branch_rd2D;
 wire [31:0]sl2_instrD,sign_immD,sl2_sign_immD;
 // E
-wire flushE,actual_takeE,pred_takeE,regdstE,alusrcE,regwriteE,memtoRegE;
+wire flushE,equalE,pred_takeE,regdstE,alusrcE,regwriteE,memtoRegE;
 wire [1:0]forwardAE,forwardBE;
 wire [2:0]alucontrolE;
 wire [4:0]rtE,rdE,rsE,reg_waddrE;
@@ -27,7 +27,7 @@ wire [31:0]sign_immE;
 wire [31:0]srcB,alu_resE;
 wire [31:0]pcE,pc_plus4E,pc_branchE,instrE;
 // M
-wire flushM,actual_takeM,pred_takeM,branchM,regwriteM,memtoRegM,memWriteM;
+wire flushM,equalM,actual_takeM,pred_takeM,branchM,regwriteM,memtoRegM,memWriteM;
 wire [4:0]reg_waddrM;
 wire [31:0]alu_resM,pcM,pc_plus4M,pc_branchM,pc_actualM,instrM;
 // W
@@ -146,13 +146,13 @@ alu alu(
 );
 
 // 只针对beq的跳转判断
-assign actual_takeE = (sel_rd1E == sel_rd2E) ? 1:0;
+assign equalE = (sel_rd1E == sel_rd2E) ? 1:0;
 
 // ====================================== Memory ======================================
 flopenrc #(32) DFF_pc_branchM     (clk,rst,flushM,ena,pc_branchE,pc_branchM);
 flopenrc #(32) DFF_pc_plus4M      (clk,rst,flushM,ena,pc_plus4E,pc_plus4M);
 flopenrc #(32) DFF_instrM         (clk,rst,flushM,ena,instrE,instrM);
-flopenrc #(32) DFF_actual_takeM   (clk,rst,flushM,ena,actual_takeE,actual_takeM);
+flopenrc #(32) DFF_equalM         (clk,rst,flushM,ena,equalE,equalM);
 flopenrc #(32) DFF_alu_resM       (clk,rst,flushM,ena,alu_resE,alu_resM);
 flopenrc #(32) DFF_data_ram_wdataM(clk,rst,flushM,ena,sel_rd2E,data_ram_wdataM);
 flopenrc #(32) DFF_pcM            (clk,rst,flushM,ena,pcE,pcM);
@@ -160,6 +160,7 @@ flopenrc #(5 ) DFF_reg_waddrM     (clk,rst,flushM,ena,reg_waddrE,reg_waddrM);
 flopenrc #(1 ) DFF_pred_takeM     (clk,rst,flushM,ena,pred_takeE,pred_takeM);
 
 assign data_ram_waddrM = alu_resM;
+assign actual_takeM = branchM & equalM;
 assign pc_actualM = actual_takeM ? pc_branchM : pc_plus4M;
 
 // ====================================== WriteBack ======================================
@@ -186,8 +187,10 @@ mux2 mux2_memtoReg(.a(alu_resW),.b(data_ram_rdataW),.sel(memtoRegW),.y(wd3W));
 branch_predict branch_predict(
     .clk(clk),  // input wire  
     .rst(rst),  // input wire 
-    .flushD(flushD),  // input wire 
-    .stallD(stallD),  // input wire 
+    .flushD(flushD),
+    .stallD(stallD),
+    .flushE(flushE),
+    .flushM(flushM),
     .pcF(pcF),  // input wire [31:0] 
     .pcM(pcM),  // input wire [31:0] 
     .branchD(branchD),  // output wire              // 译码阶段是否是跳转指令   

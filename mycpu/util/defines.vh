@@ -369,3 +369,8 @@
 //change the SPECIAL2_INST from 6'b011100 to 6'b010000
 `define MTC0 5'b00100
 `define MFC0 5'b00000
+
+`define Strongly_not_taken 2'b00
+`define Weakly_not_taken 2'b01
+`define Weakly_taken 2'b11
+`define Strongly_taken 2'b10

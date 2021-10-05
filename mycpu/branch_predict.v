@@ -3,6 +3,8 @@ module branch_predict (
     
     input wire flushD,
     input wire stallD,
+    input wire flushE,
+    input wire flushM,
 
     input wire [31:0] pcF,
     input wire [31:0] pcM,
@@ -14,77 +16,93 @@ module branch_predict (
     
     output wire pred_takeD      // 预测是否跳转
 );
-    wire pred_takeF;
-    reg pred_takeF_r;
 
 // 定义参数
-    parameter Strongly_not_taken = 2'b00,Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
-    parameter PHT_DEPTH = 6;
+    parameter PHT_DEPTH = 6;  
+    parameter BHT_DEPTH = 10;
+    parameter Strongly_GP = 2'b00,Weakly_GP = 2'b01, Weakly_BP = 2'b11, Strongly_BP = 2'b10;
+    integer i;
 
 // 定义结构
-    reg [(PHT_DEPTH-1):0] GHT;
-    reg [1:0] PHT [(1<<PHT_DEPTH)-1:0];
+    wire Gpred_takeD,Bpred_takeD;
+    wire correctG,correctB;
+
+    reg  [1:0] CPHT [(1<<PHT_DEPTH)-1:0];
+    wire [(PHT_DEPTH-1):0] GPHT_index;  // CPHT的index来源于 GPHT_index = PC ^ GHT
+    wire [(PHT_DEPTH-1):0] update_GPHT_index;
+    wire [1:0] CPHT_value;
+
+// GHT和BHT预测和更新
+    branch_predict_global #(.PHT_DEPTH(PHT_DEPTH))
+    GHT(
+        .clk(clk), 
+        .rst(rst),
+        .flushD(flushD),
+        .stallD(stallD),
+        .flushE(flushE),
+        .flushM(flushM),
+        .pcF(pcF),
+        .pcM(pcM),
+        .branchD(branchD),
+        .branchM(branchM), 
+        .actual_takeM(actual_takeM),        
+        
+        .PHT_index(GPHT_index),
+        .update_PHT_index(update_GPHT_index),
+        .pred_takeD(Gpred_takeD),
+        .correct(correctG)
+    );
     
-    integer i,j;
-    wire [(PHT_DEPTH-1):0] PHT_index;
+    branch_predict_local #(.PHT_DEPTH(PHT_DEPTH),.BHT_DEPTH(BHT_DEPTH))
+    BHT(
+        .clk(clk), 
+        .rst(rst),
+        .flushD(flushD),
+        .stallD(stallD),
+        .flushE(flushE),
+        .flushM(flushM),
+        .pcF(pcF),
+        .pcM(pcM),
+        .branchD(branchD),
+        .branchM(branchM), 
+        .actual_takeM(actual_takeM),        
+        
+        .pred_takeD(Bpred_takeD),
+        .correct(correctB)
+    );
 
-// ---------------------------------------预测逻辑---------------------------------------
-    // 取指阶段
-    assign PHT_index = pcF[(PHT_DEPTH-1):0] ^ GHT[(PHT_DEPTH-1):0];
+// CPHT做选择
+    assign CPHT_value = CPHT[GPHT_index];
+    assign pred_takeD = CPHT_value[1] ? Bpred_takeD : Gpred_takeD;
 
-    assign pred_takeF = PHT[PHT_index][1];      // 在取指阶段预测是否会跳转，并经过流水线传递给译码阶段。
-
-    // --------------------------pipeline------------------------------
-    always @(posedge clk) begin
-        // 刷新
-        if(rst | flushD) begin
-            pred_takeF_r <= 0;
-        end
-        // 阻塞
-        else if(~stallD) begin
-            pred_takeF_r <= pred_takeF;
-        end
-    end
-    // --------------------------pipeline------------------------------
-
-// ---------------------------------------预测逻辑---------------------------------------
-
-
-// ---------------------------------------GHT初始化以及更新---------------------------------------
-    wire [(PHT_DEPTH-1):0] update_PHT_index;
-    assign update_PHT_index = pcM[(PHT_DEPTH-1):0] ^ GHT;
-
-    always@(posedge clk) begin
-        if(rst) begin
-            GHT <= 6'b000000;
-        end
-        else if(branchM) begin
-            // ********** 此处应该添加你的更新逻辑的代码 **********
-            GHT = {GHT[(PHT_DEPTH-2):0],actual_takeM};
-        end
-    end
-// ---------------------------------------GHT初始化以及更新---------------------------------------
-
-
-// ---------------------------------------PHT初始化以及更新---------------------------------------
+// CPHT的初始化和更新
     always @(posedge clk) begin
         if(rst) begin
             for(i = 0; i < (1<<PHT_DEPTH); i=i+1) begin
-                PHT[i] <= Weakly_taken;
+                CPHT[i] <= Weakly_GP;
             end
         end
         else if(branchM) begin
-            case(PHT[update_PHT_index])
-                // ********** 此处应该添加你的更新逻辑的代码 **********
-                Strongly_not_taken: PHT[update_PHT_index] <= actual_takeM ? Weakly_not_taken : Strongly_not_taken;
-                Weakly_not_taken: PHT[update_PHT_index] <= actual_takeM ? Weakly_taken : Strongly_not_taken;
-                Weakly_taken: PHT[update_PHT_index] <= actual_takeM ? Strongly_taken : Weakly_not_taken;
-                Strongly_taken: PHT[update_PHT_index] <= actual_takeM ? Strongly_taken : Weakly_taken;
+            case(CPHT[update_GPHT_index])
+                Strongly_GP: begin
+                    if(correctG >= correctB)       CPHT[update_GPHT_index] <= Strongly_GP;
+                    else                           CPHT[update_GPHT_index] <= Weakly_GP;
+                end
+                Weakly_GP  : begin
+                    if(correctG > correctB)        CPHT[update_GPHT_index] <= Strongly_GP;
+                    else if (correctG == correctB) CPHT[update_GPHT_index] <= Weakly_GP;
+                    else                           CPHT[update_GPHT_index] <= Weakly_BP;
+                end
+                Weakly_BP  : begin
+                    if(correctG > correctB)        CPHT[update_GPHT_index] <= Weakly_GP;
+                    else if (correctG == correctB) CPHT[update_GPHT_index] <= Weakly_BP;
+                    else                           CPHT[update_GPHT_index] <= Strongly_BP;
+                end
+                Strongly_BP: begin
+                    if(correctG <= correctB)       CPHT[update_GPHT_index] <= Strongly_BP;
+                    else                           CPHT[update_GPHT_index] <= Weakly_BP;
+                end
             endcase 
         end
     end
-// ---------------------------------------PHT初始化以及更新---------------------------------------
-
-    // 译码阶段输出最终的预测结果
-    assign pred_takeD = branchD & pred_takeF_r;  
 endmodule
