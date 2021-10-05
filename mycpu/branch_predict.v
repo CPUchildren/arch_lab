@@ -90,10 +90,10 @@ module branch_predict (
         else if(branchM) begin
             case(PHT[update_PHT_index])
                 // TODO 此处应该添加你的更新逻辑的代码
-                Strongly_not_taken: PHT[update_PHT_index] = actual_takeM ? Weakly_not_taken : Strongly_not_taken;
-                Weakly_not_taken: PHT[update_PHT_index] = actual_takeM ? Weakly_taken : Strongly_not_taken;
-                Weakly_taken: PHT[update_PHT_index] = actual_takeM ? Strongly_taken : Weakly_not_taken;
-                Strongly_taken: PHT[update_PHT_index] = actual_takeM ? Strongly_taken : Weakly_taken;
+                Strongly_not_taken: PHT[update_PHT_index] <= actual_takeM ? Weakly_not_taken : Strongly_not_taken;
+                Weakly_not_taken: PHT[update_PHT_index] <= actual_takeM ? Weakly_taken : Strongly_not_taken;
+                Weakly_taken: PHT[update_PHT_index] <= actual_takeM ? Strongly_taken : Weakly_not_taken;
+                Strongly_taken: PHT[update_PHT_index] <= actual_takeM ? Strongly_taken : Weakly_taken;
             endcase 
         end
     end
