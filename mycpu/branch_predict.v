@@ -20,62 +20,50 @@ module branch_predict (
 // 定义参数
     parameter Strongly_not_taken = 2'b00,Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
-    parameter BHT_DEPTH = 10;
 
 // 定义结构
-    reg [(PHT_DEPTH-1):0] BHT [(1<<BHT_DEPTH)-1 : 0];
+    reg [(PHT_DEPTH-1):0] GHT;
     reg [1:0] PHT [(1<<PHT_DEPTH)-1:0];
     
     integer i,j;
     wire [(PHT_DEPTH-1):0] PHT_index;
-    wire [(BHT_DEPTH-1):0] BHT_index;
-    wire [(PHT_DEPTH-1):0] BHR_value;
 
 // ---------------------------------------预测逻辑---------------------------------------
     // 取指阶段
-    assign BHT_index = pcF[11:2];     
-    assign BHR_value = BHT[BHT_index];  
-    assign PHT_index = pcF[(PHT_DEPTH-1):0] ^ BHR_value;
+    assign PHT_index = pcF[(PHT_DEPTH-1):0] ^ GHT[(PHT_DEPTH-1):0];
 
     assign pred_takeF = PHT[PHT_index][1];      // 在取指阶段预测是否会跳转，并经过流水线传递给译码阶段。
 
     // --------------------------pipeline------------------------------
-        always @(posedge clk) begin
-            // 刷新
-            if(rst | flushD) begin
-                pred_takeF_r <= 0;
-            end
-            // 阻塞
-            else if(~stallD) begin
-                pred_takeF_r <= pred_takeF;
-            end
+    always @(posedge clk) begin
+        // 刷新
+        if(rst | flushD) begin
+            pred_takeF_r <= 0;
         end
+        // 阻塞
+        else if(~stallD) begin
+            pred_takeF_r <= pred_takeF;
+        end
+    end
     // --------------------------pipeline------------------------------
 
 // ---------------------------------------预测逻辑---------------------------------------
 
 
-// ---------------------------------------BHT初始化以及更新---------------------------------------
+// ---------------------------------------GHT初始化以及更新---------------------------------------
     wire [(PHT_DEPTH-1):0] update_PHT_index;
-    wire [(BHT_DEPTH-1):0] update_BHT_index;
-    wire [(PHT_DEPTH-1):0] update_BHR_value;
-
-    assign update_BHT_index = pcM[11:2];     
-    assign update_BHR_value = BHT[update_BHT_index];  
-    assign update_PHT_index = pcM[(PHT_DEPTH-1):0] ^ update_BHR_value;
+    assign update_PHT_index = pcM[(PHT_DEPTH-1):0] ^ GHT;
 
     always@(posedge clk) begin
         if(rst) begin
-            for(j = 0; j < (1<<BHT_DEPTH); j=j+1) begin
-                BHT[j] <= 6'b000000;
-            end
+            GHT <= 6'b000000;
         end
         else if(branchM) begin
             // ********** 此处应该添加你的更新逻辑的代码 **********
-            BHT[update_BHT_index] = {BHT[update_BHT_index][(PHT_DEPTH-2):0],actual_takeM};
+            GHT = {GHT[(PHT_DEPTH-2):0],actual_takeM};
         end
     end
-// ---------------------------------------BHT初始化以及更新---------------------------------------
+// ---------------------------------------GHT初始化以及更新---------------------------------------
 
 
 // ---------------------------------------PHT初始化以及更新---------------------------------------
