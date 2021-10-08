@@ -167,31 +167,31 @@ alu_always alu( .clk(clka), .a(rd1), .b(alu_srcB), .f(alucontrol[2:0]), .y(alu_r
 
     
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>E_M<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
-floprc #(32) writedata_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(writedataE), .q(writedataM) ); 
+floprc #(32) writedata_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(writedataE), .q(writedataM) ); 
     
-floprc #(32) pc_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(pcE), .q(pcM) );
+floprc #(32) pc_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(pcE), .q(pcM) );
     
-floprc #(1) branch_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(branchE), .q(branchM) ); 
+floprc #(1) branch_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(branchE), .q(branchM) ); 
     
-floprc #(1) pred_take_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(pred_takeE), .q(pred_takeM) ); 
+floprc #(1) pred_take_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(pred_takeE), .q(pred_takeM) ); 
 
-floprc #(1) pred_global_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(pred_globalE), .q(pred_globalM) );
+floprc #(1) pred_global_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(pred_globalE), .q(pred_globalM) );
 
-floprc #(1) pred_local_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(pred_localE), .q(pred_localM) );
+floprc #(1) pred_local_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(pred_localE), .q(pred_localM) );
     
-floprc #(1) actual_take_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(actual_takeE), .q(actual_takeM) );    
+floprc #(1) actual_take_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(actual_takeE), .q(actual_takeM) );    
 
-floprc #(32) r10M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(alu_result), .q(alu_resultM) );
+floprc #(32) r10M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(alu_result), .q(alu_resultM) );
     
-floprc #(1) r11M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(zero), .q(zeroM) );
+floprc #(1) r11M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(zero), .q(zeroM) );
     
-floprc #(32) r12M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(write2regE), .q(write2regM) );
+floprc #(32) r12M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(write2regE), .q(write2regM) );
     
-floprc #(32) r13M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(pc_branchE), .q(pc_branchM) );
+floprc #(32) r13M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(pc_branchE), .q(pc_branchM) );
 
-floprc #(5) r7M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(rdE), .q(rdM) );
+floprc #(5) r7M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(rdE), .q(rdM) );
     
-floprc #(32) pc_plus4_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(pc_plus4E), .q(pc_plus4M) );
+floprc #(32) pc_plus4_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM1), .d(pc_plus4E), .q(pc_plus4M) );
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>E_M<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< //
 
 
@@ -222,7 +222,7 @@ wire pred_globalD, pred_localD, pred_globalE, pred_localE, pred_globalM, pred_lo
 wire [13:0] CPHT_indexD, CPHT_indexM;
 assign flushD = actual_takeM|jump;
 assign flushE1 = flushE|~(actual_takeM==pred_takeM);
-assign flushM1 = 1'b0;
+assign flushM1 = ~(actual_takeM==pred_takeM);
 branch_predict branch_predict( .clk(clka), .rst(rst), .flushD(actual_takeM|jump), .stallD(stallD), .pcF(pc), .pcM(pcM), .branchM(branchM), .actual_takeM(actual_takeM), .branchD(branch), .pred_takeD(pred_localD) );
 branch_predict_global branch_predict_global( .clk(clka), .rst(rst), .flushD(actual_takeM|jump),.flushE(flushE1), .flushM(flushM1), .stallD(stallD), .pcF(pc), .pcM(pcM), .branchM(branchM), .actual_takeM(actual_takeM), .pred_takeM(pred_takeM), .branchD(branch), .pred_takeD(pred_globalD), .PHT_index(CPHT_indexD), .update_PHT_index(CPHT_indexM) );
 branch_predict_complete branch_predict_complete(

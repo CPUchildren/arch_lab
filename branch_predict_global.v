@@ -73,7 +73,7 @@ module branch_predict_global(
 
             floprc #(4) GHT_E( .clk(clka), .rst(rst), .en(1'b1), .clear(flushE), .d(GHTD), .q(GHTE) );
 
-            floprc #(4) GHT_M( .clk(clka), .rst(rst), .en(1'b1), .clear(1'b0), .d(GHTE), .q(GHTM) );
+            floprc #(4) GHT_M( .clk(clka), .rst(rst), .en(1'b1), .clear(flushM), .d(GHTE), .q(GHTM) );
         // --------------------------pipeline------------------------------
 
 // ---------------------------------初始化和更新GHT GHT_realM----------------------------------
@@ -90,7 +90,7 @@ module branch_predict_global(
                 GHT <= (GHTD<<1);
             end
         end
-        else if(~(actual_takeM==pred_takeM)) begin
+        else if(branchM&~(actual_takeM==pred_takeM)) begin
             // 预测错误时修改GHT
             GHT <= GHT_realM;
         end
