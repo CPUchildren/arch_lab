@@ -36,7 +36,7 @@ module branch_predict_global #(parameter PHT_DEPTH = 6) // 作为端口参数
 
 // ---------------------------------------预测逻辑---------------------------------------
 // 取指阶段
-    assign PHT_index = pcF[(PHT_DEPTH-1):0] ^ GHR_Spec[(PHT_DEPTH-1):0];
+    assign PHT_index = pcF[(PHT_DEPTH-1+2):2] ^ GHR_Spec[(PHT_DEPTH-1):0];
     assign predF = PHT[PHT_index][1];      // 在取指阶段预测是否会跳转，并经过流水线传递给译码阶段。
     assign pred_takeF = branchF & predF;
 
@@ -52,7 +52,7 @@ module branch_predict_global #(parameter PHT_DEPTH = 6) // 作为端口参数
 
     // assign PHT_index = PHT_indexF;
     // assign update_PHT_index = PHT_indexM;
-    assign update_PHT_index = pcM[(PHT_DEPTH-1):0] ^ GHR_Retire[(PHT_DEPTH-1):0];
+    assign update_PHT_index = pcM[(PHT_DEPTH-1+2):2] ^ GHR_Retire[(PHT_DEPTH-1):0];
     
 // GHR_Spec初始化及更新
     always@(posedge clk) begin

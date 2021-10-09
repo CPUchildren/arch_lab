@@ -40,9 +40,9 @@ module branch_predict_local (
 
 // ---------------------------------------预测逻辑---------------------------------------
     // 取指阶段
-    assign BHT_index = pcF[11:2];     
+    assign BHT_index = pcF[(BHT_DEPTH-1+2):2];     
     assign BHR_value = BHT[BHT_index];  
-    assign PHT_index = pcF[(PHT_DEPTH-1):0] ^ BHR_value;
+    assign PHT_index = pcF[(PHT_DEPTH-1+2):2] ^ BHR_value;
 
     assign predF = PHT[PHT_index][1];      // 在取指阶段预测是否会跳转，并经过流水线传递给译码阶段。
 
@@ -60,9 +60,9 @@ module branch_predict_local (
     wire [(BHT_DEPTH-1):0] update_BHT_index;
     wire [(PHT_DEPTH-1):0] update_BHR_value;
 
-    assign update_BHT_index = pcM[11:2];     
+    assign update_BHT_index = pcM[(BHT_DEPTH-1+2):2];     
     assign update_BHR_value = BHT[update_BHT_index];  
-    assign update_PHT_index = pcM[(PHT_DEPTH-1):0] ^ update_BHR_value;
+    assign update_PHT_index = pcM[(PHT_DEPTH-1+2):2] ^ update_BHR_value;
 
     always@(posedge clk) begin
         if(rst) begin
@@ -72,7 +72,9 @@ module branch_predict_local (
         end
         else if(branchM) begin
             // ********** 此处应该添加你的更新逻辑的代码 **********
-            BHT[update_BHT_index] <= {BHT[update_BHT_index][(PHT_DEPTH-2):0],actual_takeM};
+            BHT[update_BHT_index] <
+            
+            = {BHT[update_BHT_index][(PHT_DEPTH-2):0],actual_takeM};
         end
     end
 // ---------------------------------------BHT初始化以及更新---------------------------------------
