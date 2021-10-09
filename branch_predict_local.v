@@ -23,7 +23,8 @@ module branch_predict_local (
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
     parameter BHT_DEPTH = 10;
-    parameter Instbegin,Instend;
+    parameter Instbegin=11£»
+    parameter Instend=2;
 // 
     reg [5:0] BHT [(1<<BHT_DEPTH)-1 : 0];
     reg [1:0] PHT [(1<<PHT_DEPTH)-1:0];

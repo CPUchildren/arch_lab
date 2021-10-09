@@ -29,7 +29,8 @@ module branch_predict_compete (
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
     parameter BHT_DEPTH = 10;
-    parameter Instbegin,Instend;
+    parameter Instbegin=11£»
+    parameter Instend=2;
 
     reg [1:0] GPHT [(1<<PHT_DEPTH)-1 : 0];
 
