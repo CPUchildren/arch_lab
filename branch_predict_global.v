@@ -37,7 +37,7 @@ module branch_predict_global (
             GHR <= (GHR<<1) + (pred_takeF & branchF);   // 根据预测值更新
         end
         else if(errorM) begin
-            GHR[0] <= RGHR[0];
+            GHR[0] <= RGHR[0];              // 不是更新最低位
         end
     end
 // ---------------------------------------GHR在预测阶段根据预测值更新------------------------------------

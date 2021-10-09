@@ -29,6 +29,7 @@ module branch_predict_compete (
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
     parameter PHT_DEPTH = 6;
     parameter BHT_DEPTH = 10;
+    parameter Instbegin,Instend;
 
     reg [1:0] GPHT [(1<<PHT_DEPTH)-1 : 0];
 
@@ -43,7 +44,7 @@ module branch_predict_compete (
             GHR <= (GHR<<1) + (Gpred_takeF & branchF);   // 根据预测值更新
         end
         else if(errorM) begin
-            GHR[0] <= RGHR[0];
+            GHR <= RGHR;
         end
     end
 // ---------------------------------------GHR在预测阶段根据预测值更新------------------------------------
@@ -161,7 +162,7 @@ module branch_predict_compete (
 
 // ---------------------------------------é?????é?????---------------------------------------
 
-    assign BHT_index = pcF[11:2];     
+    assign BHT_index = pcF[Instbegin:Instend];     
     assign BHR_value = BHT[BHT_index];  
     assign PHT_index = BHR_value;
     
@@ -186,7 +187,7 @@ module branch_predict_compete (
     wire [(BHT_DEPTH-1):0] update_BHT_index;
     wire [(PHT_DEPTH-1):0] update_BHR_value;
 
-    assign update_BHT_index = pcM[11:2];     
+    assign update_BHT_index = pcM[Instbegin:Instend];     
     assign update_BHR_value = BHT[update_BHT_index];  
     assign update_PHT_index = update_BHR_value;
     
@@ -282,7 +283,7 @@ module branch_predict_compete (
 //////// CPHT
     reg [2:0] CPHT [ (1<<BHT_DEPTH)-1 : 0];
     wire CPHT_index;
-    assign CPHT_index = pcM[11:2];   
+    assign CPHT_index = pcM[Instbegin:Instend];   
 
     parameter Strongly_global = 2'b00, Weakly_global = 2'b01, Weakly_local = 2'b10, Strongly_local = 2'b11;
 
@@ -341,7 +342,7 @@ module branch_predict_compete (
     end
 
     wire pred_chooseF,pred_chooseD;
-    assign pred_chooseF=CPHT[pcF[11:2]][1];
+    assign pred_chooseF=CPHT[pcF[Instbegin:Instend]][1];
     flopenrc #(1) prechoose(clk,rst,clear,ena,pred_chooseF,pred_chooseD);
     
     assign pred_takeD= (pred_chooseD==1'b0)?Gpred_takeD:Bpred_takeD;
