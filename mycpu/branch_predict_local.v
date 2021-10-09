@@ -72,7 +72,7 @@ module branch_predict_local (
         end
         else if(branchM) begin
             // ********** 此处应该添加你的更新逻辑的代码 **********
-            BHT[update_BHT_index] = {BHT[update_BHT_index][(PHT_DEPTH-2):0],actual_takeM};
+            BHT[update_BHT_index] <= {BHT[update_BHT_index][(PHT_DEPTH-2):0],actual_takeM};
         end
     end
 // ---------------------------------------BHT初始化以及更新---------------------------------------

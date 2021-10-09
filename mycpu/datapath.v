@@ -9,7 +9,7 @@ module datapath (
 
 // ==================== 变量定义区，避免重复定义，还是集中在一起吧 =======================
 // F
-wire stallF,flushF;
+wire stallF,flushF,branchF;
 wire [31:0]pcF,pc_plus4F,pc_nextF;
 // D
 wire stallD,flushD,forwardAD,forwardBD,pred_takeD,branchD,jumpD; // pcsrcD
@@ -41,6 +41,8 @@ assign clear = 1'b0;
 assign ena = 1'b1;
 
 // ====================================== Fetch ======================================
+assign branchF=(instrF[31:26]==6'b000100)? 1:0;  // beq指令判断
+
 pc_mux pc_mux(
     // .flushF(flushF),
     .jumpD(jumpD),
@@ -185,17 +187,18 @@ mux2 mux2_memtoReg(.a(alu_resW),.b(data_ram_rdataW),.sel(memtoRegW),.y(wd3W));
 // 在E判断是否预测正确；
 // 在M处理错误预测和更新PHT。
 branch_predict branch_predict(
-    .clk(clk),  // input wire  
-    .rst(rst),  // input wire 
+    .clk(clk),
+    .rst(rst),
     .flushD(flushD),
     .stallD(stallD),
     .flushE(flushE),
     .flushM(flushM),
-    .pcF(pcF),  // input wire [31:0] 
-    .pcM(pcM),  // input wire [31:0] 
-    .branchD(branchD),  // output wire              // 译码阶段是否是跳转指令   
-    .branchM(branchM),  // input wire               // M阶段是否是分支指令
-    .actual_takeM(actual_takeM),  // input wire     // 实际是否跳转
+    .pcF(pcF),
+    .pcM(pcM),
+    .branchF(branchF),
+    .branchD(branchD),
+    .branchM(branchM),
+    .actual_takeM(actual_takeM),
     
     .pred_takeD(pred_takeD)   // output wire        // 预测是否跳转
 );
