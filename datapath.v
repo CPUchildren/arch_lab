@@ -224,7 +224,7 @@ assign flushD = actual_takeM|jump;
 assign flushE1 = flushE|~(actual_takeM==pred_takeM);
 assign flushM1 = ~(actual_takeM==pred_takeM);
 branch_predict branch_predict( .clk(clka), .rst(rst), .flushD(actual_takeM|jump), .stallD(stallD), .pcF(pc), .pcM(pcM), .branchM(branchM), .actual_takeM(actual_takeM), .branchD(branch), .pred_takeD(pred_localD) );
-branch_predict_global branch_predict_global( .clk(clka), .rst(rst), .flushD(actual_takeM|jump),.flushE(flushE1), .flushM(flushM1), .stallD(stallD), .pcF(pc), .pcM(pcM), .branchM(branchM), .actual_takeM(actual_takeM), .pred_takeM(pred_takeM), .branchD(branch), .pred_takeD(pred_globalD), .PHT_index(CPHT_indexD), .update_PHT_index(CPHT_indexM) );
+branch_predict_global branch_predict_global( .clk(clka), .rst(rst), .flushD(actual_takeM|jump),.flushE(flushE1), .flushM(flushM1), .stallD(stallD), .pcF(pc), .pcM(pcM), .instrF(instr), .branchM(branchM), .actual_takeM(actual_takeM), .pred_takeM(pred_takeM), .branchD(branch), .pred_takeD(pred_globalD), .PHT_index(CPHT_indexD), .update_PHT_index(CPHT_indexM) );
 branch_predict_complete branch_predict_complete(
     clka, rst,
 

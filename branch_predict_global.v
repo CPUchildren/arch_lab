@@ -29,6 +29,8 @@ module branch_predict_global(
     input wire [31:0] pcF,
     input wire [31:0] pcM,
 
+    input wire [31:0] instrF,
+
     input wire branchM,         
     input wire actual_takeM, pred_takeM,  
 
@@ -38,6 +40,7 @@ module branch_predict_global(
     output wire [9:0] PHT_index, update_PHT_index  
     );
     wire pred_takeF;
+    wire branchF;
     reg pred_takeF_r;
     wire [3:0] GHTD, GHTE, GHTM;
 
@@ -56,7 +59,7 @@ module branch_predict_global(
 // -------------------------------------根据pcF和GHT预测pred_takeF------------------------------------------
 
     assign PHT_index = pcF[11:2]^GHT;
-
+    assign branchF = (instrF[31:26]==000100 || instrF[31:26]==000101 || instrF[31:26]==000001 || instrF[31:26]==000111 || instrF[31:26]==000110)?1:0;
     assign pred_takeF = PHT[PHT_index][1];
 
         // --------------------------pipeline------------------------------
@@ -81,18 +84,23 @@ module branch_predict_global(
         if(rst) begin
             GHT <= 0;
         end
-        else if(branchD&~flushD) begin
-            // D阶段是branch指令并且又没预测错误更新GHT
-            if(pred_takeD) begin
-                GHT <= (GHTD<<1)+1;
+        else if(branchF&~flushD) begin
+            // F阶段是branch指令并且又没预测错误更新GHT
+            if(pred_takeF) begin
+                GHT <= (GHT<<1)+1;
             end
             else begin
-                GHT <= (GHTD<<1);
+                GHT <= (GHT<<1);
             end
         end
         else if(branchM&~(actual_takeM==pred_takeM)) begin
             // 预测错误时修改GHT
-            GHT <= GHT_realM;
+            if(pred_takeF) begin
+                GHT <= (GHT_realM<<1)+1;
+            end
+            else begin
+                GHT <= (GHT_realM<<1);
+            end
         end
     end
 
