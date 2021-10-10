@@ -115,7 +115,7 @@ module branch_predict_global(
 
 // ---------------------------------初始化和更新PHT----------------------------------
     wire [(PHT_DEPTH-1):0] update_PHT_index;
-    assign update_PHT_index = {pcM[11:2], GHTM};
+    assign update_PHT_index = {pcM[11:2], GHT_realM};
     
     always @(posedge clk) begin
         if(rst) begin
