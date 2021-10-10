@@ -35,7 +35,7 @@ module branch_predict_global(
 
     input wire branchD,        
     output wire pred_takeD,
-    output wire [13:0] PHT_index, update_PHT_index  
+    output wire [9:0] PHT_index, update_PHT_index  
     );
     wire pred_takeF;
     reg pred_takeF_r;
@@ -44,18 +44,18 @@ module branch_predict_global(
 // 初始化数据
     // 常数
     parameter Strongly_not_taken = 2'b00, Weakly_not_taken = 2'b01, Weakly_taken = 2'b11, Strongly_taken = 2'b10;
-    parameter PHT_DEPTH = 14;
+    parameter PHT_DEPTH = 10;
     parameter GHT_DEPTH = 1;
 
     // GHT PHT GHT_realM寄存器
-    reg [3:0] GHT, GHT_realM;
+    reg [9:0] GHT, GHT_realM;
     reg [1:0] PHT [(1<<PHT_DEPTH)-1:0];
 
     integer i, j;
 
 // -------------------------------------根据pcF和GHT预测pred_takeF------------------------------------------
 
-    assign PHT_index = {pcF[11:2], GHT};
+    assign PHT_index = pcF[11:2]^GHT;
 
     assign pred_takeF = PHT[PHT_index][1];
 
@@ -115,7 +115,7 @@ module branch_predict_global(
 
 // ---------------------------------初始化和更新PHT----------------------------------
     wire [(PHT_DEPTH-1):0] update_PHT_index;
-    assign update_PHT_index = {pcM[11:2], GHT_realM};
+    assign update_PHT_index = pcM[11:2]^GHT_realM;
     
     always @(posedge clk) begin
         if(rst) begin
