@@ -59,7 +59,7 @@ module branch_predict_global(
 // -------------------------------------根据pcF和GHT预测pred_takeF------------------------------------------
 
     assign PHT_index = pcF[11:2]^GHT;
-    assign branchF = (instrF[31:26]==000100 || instrF[31:26]==000101 || instrF[31:26]==000001 || instrF[31:26]==000111 || instrF[31:26]==000110)?1:0;
+    assign branchF = (instrF[31:26]==6'b000100 | instrF[31:26]==6'b000101 | instrF[31:26]==6'b000001 | instrF[31:26]==6'b000111 | instrF[31:26]==6'b000110)?1:0;
     assign pred_takeF = PHT[PHT_index][1];
 
         // --------------------------pipeline------------------------------
