@@ -61,20 +61,16 @@ module branch_predict_global #(parameter PHT_DEPTH = 6) // 作为端口参数
             // 初始化
             GHR_Spec <= {PHT_DEPTH{1'b0}};
         end
-        // else if(branchF) begin
-        //     // 预测阶段更新
-        //     GHR_Spec <= {GHR_Spec[(PHT_DEPTH-2):0],pred_takeF};
-        // end
+        else if(branchF) begin
+            // 预测阶段更新
+            GHR_Spec <= {GHR_Spec[(PHT_DEPTH-2):0],pred_takeF};
+        end
         else if(branchM & (!correct)) begin
             // 提交阶段更正
             GHR_Spec <= GHR_Retire;
         end
     end
     
-    // 预测阶段更新
-    always@(posedge branchF) begin
-        GHR_Spec <= {GHR_Spec[(PHT_DEPTH-2):0],pred_takeF};
-    end
 // ---------------------------------------预测逻辑---------------------------------------
 
 
