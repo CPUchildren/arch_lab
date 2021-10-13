@@ -35,13 +35,8 @@ module branch_predict_global #(parameter PHT_DEPTH = 6) // 作为端口参数
     wire [(PHT_DEPTH-1):0] PHT_indexF,PHT_indexD,PHT_indexE,PHT_indexM;
 
 // ---------------------------------------预测逻辑---------------------------------------
-<<<<<<< HEAD
 // 取指阶段
     assign PHT_index = pcF[(PHT_DEPTH-1+2):2] ^ GHR_Spec[(PHT_DEPTH-1):0];
-=======
-    // 取指阶段
-    assign PHT_indexF = pcF[(PHT_DEPTH-1):0] ^ GHR_Spec[(PHT_DEPTH-1):0];
->>>>>>> parent of d137031... update_GPHT_index涓ょ瑙ｅ喅鏂规
     assign predF = PHT[PHT_index][1];      // 在取指阶段预测是否会跳转，并经过流水线传递给译码阶段。
     assign pred_takeF = branchF & predF;
 
@@ -56,15 +51,11 @@ module branch_predict_global #(parameter PHT_DEPTH = 6) // 作为端口参数
     flopenrc #(1)         DFF_pred_takeM(clk,rst,flushM,ena,pred_takeE,pred_takeM);
     flopenrc #(PHT_DEPTH) DFF_PHT_indexM(clk,rst,flushM,ena,PHT_indexE,PHT_indexM);
 
-<<<<<<< HEAD
     // assign PHT_index = PHT_indexF;
     // assign update_PHT_index = PHT_indexM;
     assign update_PHT_index = pcM[(PHT_DEPTH-1+2):2] ^ GHR_Retire[(PHT_DEPTH-1):0];
     
 // GHR_Spec初始化及更新
-=======
-    // GHR_Spec初始化及更新
->>>>>>> parent of d137031... update_GPHT_index涓ょ瑙ｅ喅鏂规
     always@(posedge clk) begin
         if(rst) begin
             // 初始化
