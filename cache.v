@@ -60,7 +60,8 @@ module cache (
         .cache_inst_data_ok (cache_inst_data_ok )
     );
 
-    d_cache d_cache(
+    // d_cache d_cache(
+    d_cache_2waywb d_cache(
         .clk(clk), .rst(rst),
         .cpu_data_req     (cpu_data_req     ),
         .cpu_data_wr      (cpu_data_wr      ),
