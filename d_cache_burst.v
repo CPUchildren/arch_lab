@@ -37,8 +37,8 @@ module d_cache_burst (
     output wire        wvalid       ,
     input  wire        wready       ,
     // 写响应
-    input  wire       bvalid       ,
-    output wire       bready       
+    input  wire        bvalid       ,
+    output wire        bready       
 );
 //Cache配置
     // TODO 跑不起来咱就换成4kB,cache数据容量为8KB 
@@ -81,13 +81,11 @@ module d_cache_burst (
     wire c_dirty;
     wire c_lastused;
     wire [TAG_WIDTH-1:0] c_tag;
-    wire [31:0] c_blocks[BLOCK_NUM-1:0];
     assign currused = (cache_valid[1][index] & (cache_tag[1][index]==tag)) ? 1'b1 : 
                       (cache_valid[0][index] & (cache_tag[0][index]==tag)) ? 1'b0 : 
                       !c_lastused;
     assign c_valid = cache_valid[currused][index];
     assign c_tag   = cache_tag  [currused][index];
-    assign c_blocks = cache_block[currused][index];        //数据
     assign c_dirty = cache_dirty[currused][index];
     assign c_lastused = cache_lastused[index];
     
@@ -165,8 +163,8 @@ module d_cache_burst (
     end
     
 // 数据对接
-reg [OFFSET-3:0]ri;
-reg [OFFSET-3:0]wi;
+reg [OFFSET_WIDTH-3:0]ri;
+reg [OFFSET_WIDTH-3:0]wi;
 reg [31:0] rdata_blocki;
 always @(posedge clk) begin
     ri <= rst ? 1'd0:
@@ -184,7 +182,7 @@ end
 // CPU接口的输出对接
 wire no_mem;
 assign no_mem = (cpu_data_req & read & hit) | (cpu_data_req & write & !(miss & c_dirty));
-assign cpu_data_rdata   = hit ? c_blocks[blocki] : rdata_blocki; 
+assign cpu_data_rdata   = hit ? cache_block[currused][index][blocki] : rdata_blocki; 
 assign cpu_data_addr_ok = no_mem | (arvalid && arready) ||(awvalid && awready); // FIXME 感觉这里要拖到3个周期
 assign cpu_data_data_ok = no_mem | (raddr_rcv && rvalid && rready || waddr_rcv && bvalid && bready);
 
@@ -202,7 +200,7 @@ assign awlen   = BLOCK_NUM-1;// output wire [7 :0]
 assign awsize  = 3'b010;// output wire [2 :0] 
 assign awvalid = write_req && !waddr_rcv;// output wire        
 // 写返回
-assign wdata   = c_block[wi];// output wire [31:0]，因为只会涉及到写脏数据，不会涉及将cpu_data_wdata写入内存的问题
+assign wdata   = cache_block[currused_save][index_save][wi];// output wire [31:0]，因为只会涉及到写脏数据，不会涉及将cpu_data_wdata写入内存的问题
 assign wstrb   = cpu_data_size==2'd0 ? 4'b0001<<cpu_data_addr[1:0] :
                  cpu_data_size==2'd1 ? 4'b0011<<cpu_data_addr[1:0] : 4'b1111; // output wire [3 :0] 
 assign wlast   = wi==awlen;// output wire        
@@ -280,7 +278,7 @@ assign bready  = waddr_rcv;// output wire
                 // $display("写缺失写干净"); 直接写
                 cache_valid[!c_lastused][index] <= 1'b1;             //将Cache line置为有效
                 cache_tag  [!c_lastused][index] <= tag;
-                cache_block[!c_lastused][index] <= write_cache_data;
+                cache_block[!c_lastused][index][blocki] <= write_cache_data;
                 cache_dirty[!c_lastused][index] <= 1'b1;
                 cache_lastused[index] <= !c_lastused;
             end

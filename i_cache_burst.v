@@ -2,14 +2,14 @@
 module i_cache_burst (
     input wire clk, rst,                  
     // 类sram从方
-    input  wire        cpu_data_req     , 
-    input  wire        cpu_data_wr      , 
-    input  wire [1 :0] cpu_data_size    , 
-    input  wire [31:0] cpu_data_addr    ,       
-    input  wire [31:0] cpu_data_wdata   ,
-    output wire [31:0] cpu_data_rdata   , 
-    output wire        cpu_data_addr_ok , 
-    output wire        cpu_data_data_ok ,
+    input  wire        cpu_inst_req     , 
+    input  wire        cpu_inst_wr      , 
+    input  wire [1 :0] cpu_inst_size    , 
+    input  wire [31:0] cpu_inst_addr    ,       
+    input  wire [31:0] cpu_inst_wdata   ,
+    output wire [31:0] cpu_inst_rdata   , 
+    output wire        cpu_inst_addr_ok , 
+    output wire        cpu_inst_data_ok ,
 
     // icache 主方
     // 读请求
@@ -44,9 +44,9 @@ module i_cache_burst (
     wire [TAG_WIDTH-1:0] tag;
     wire [OFFSET_WIDTH-3:0] blocki;
     // TODO 需要提供当前的block_num吗？
-    assign index = cpu_data_addr[INDEX_WIDTH + OFFSET_WIDTH - 1 : OFFSET_WIDTH];
-    assign tag = cpu_data_addr[31 : INDEX_WIDTH + OFFSET_WIDTH];
-    assign blocki=cpu_data_addr[OFFSET_WIDTH-1:2];
+    assign index = cpu_inst_addr[INDEX_WIDTH + OFFSET_WIDTH - 1 : OFFSET_WIDTH];
+    assign tag = cpu_inst_addr[31 : INDEX_WIDTH + OFFSET_WIDTH];
+    assign blocki=cpu_inst_addr[OFFSET_WIDTH-1:2];
 
 
 //cache的index下的cache line解析
@@ -54,23 +54,21 @@ module i_cache_burst (
     wire c_valid;
     wire c_lastused;
     wire [TAG_WIDTH-1:0] c_tag;
-    wire [31:0] c_blocks[BLOCK_NUM-1:0];
     assign currused = (cache_valid[1][index] & (cache_tag[1][index]==tag)) ? 1'b1 : 
                       (cache_valid[0][index] & (cache_tag[0][index]==tag)) ? 1'b0 : 
                       !c_lastused;
     assign c_valid = cache_valid[currused][index];
     assign c_tag   = cache_tag  [currused][index];
-    assign c_blocks = cache_block[currused][index];        //数据
     assign c_lastused = cache_lastused[index];
     
 //判断是否命中
     wire hit, miss;
-    assign hit  = cpu_data_req & c_valid & (c_tag == tag);  //cache line的valid位为1，且tag与地址中tag相等
-    assign miss = cpu_data_req & ~hit;
+    assign hit  = cpu_inst_req & c_valid & (c_tag == tag);  //cache line的valid位为1，且tag与地址中tag相等
+    assign miss = cpu_inst_req & ~hit;
 
 //读或写
     wire read;
-    assign read  = cpu_data_req & ~cpu_data_wr;
+    assign read  = cpu_inst_req & ~cpu_inst_wr;
 
 //FSM
     localparam IDLE = 2'b00, RM = 2'b01, WM = 2'b11;
@@ -81,7 +79,7 @@ module i_cache_burst (
         end
         else begin
             case(state)
-                IDLE:   state <= cpu_data_req & read & miss ? RM : IDLE;
+                IDLE:   state <= cpu_inst_req & read & miss ? RM : IDLE;
                 RM:     state <= read & read_finish ? IDLE : RM;
             endcase
         end
@@ -108,7 +106,7 @@ module i_cache_burst (
     end
     
 // 数据对接
-reg [OFFSET-3:0]ri;
+reg [OFFSET_WIDTH-3:0]ri;
 reg [31:0] rdata_blocki;
 always @(posedge clk) begin
     ri <= rst ? 1'd0:
@@ -122,16 +120,16 @@ end
 
 // CPU接口的输出对接
 wire no_mem;
-assign no_mem = cpu_data_req & read & hit;
-assign cpu_data_rdata   = no_mem ? c_blocks[blocki] : rdata_blocki; 
-assign cpu_data_addr_ok = no_mem | (arvalid && arready);
-assign cpu_data_data_ok = no_mem | (raddr_rcv && rvalid && rready);
+assign no_mem = cpu_inst_req & read & hit;
+assign cpu_inst_rdata   = no_mem ? cache_block[currused][index][blocki] : rdata_blocki; 
+assign cpu_inst_addr_ok = no_mem | (arvalid && arready);
+assign cpu_inst_data_ok = no_mem | (raddr_rcv && rvalid && rready);
 
 // 类AXI接口的输出对接
 // 读请求
 assign araddr  = {tag,index}<<OFFSET_WIDTH;// output wire [31:0] 
 assign arlen   = BLOCK_NUM-1; // output wire [7 :0] 
-assign arsize  = cpu_data_size;// output wire [2 :0] 
+assign arsize  = cpu_inst_size;// output wire [2 :0] 
 assign arvalid = read_req && !raddr_rcv;// output wire
 // 读响应
 assign rready  = raddr_rcv;// output wire
@@ -147,15 +145,15 @@ assign rready  = raddr_rcv;// output wire
     reg currused_save;
     always @(posedge clk) begin
         tag_save        <= rst ? 0 :
-                         cpu_data_req ? tag : tag_save;
+                         cpu_inst_req ? tag : tag_save;
         index_save      <= rst ? 0 :
-                         cpu_data_req ? index : index_save;
+                         cpu_inst_req ? index : index_save;
         blocki_save <=  rst ? 0 :
-                        cpu_data_req ? blocki : blocki_save;
+                        cpu_inst_req ? blocki : blocki_save;
         c_lastused_save <= rst ? 0 :
-                         cpu_data_req ? c_lastused : c_lastused_save;
+                         cpu_inst_req ? c_lastused : c_lastused_save;
         currused_save <= rst ? 0 :
-                         cpu_data_req ? currused : currused_save;
+                         cpu_inst_req ? currused : currused_save;
     end
 
     // 写cache

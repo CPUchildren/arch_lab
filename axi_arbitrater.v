@@ -1,6 +1,6 @@
 module axi_arbitrater (
     input wire clk, rst,
-    //I CACHE ä»æ–¹
+    //I CACHE ´Ó·½
     input wire [31:0] i_araddr,
     input wire [3:0] i_arlen,
     input wire i_arvalid,
@@ -11,7 +11,7 @@ module axi_arbitrater (
     output wire i_rvalid,
     input wire i_rready,
 
-    //D CACHE ä»æ–¹
+    //D CACHE ´Ó·½
     input wire [31:0] d_araddr,
     input wire [3:0] d_arlen,
     input wire [2:0] d_arsize,
@@ -38,7 +38,7 @@ module axi_arbitrater (
     output wire d_bvalid,
     input wire d_bready,
     
-    //Outer ä¸»æ–¹
+    //Outer Ö÷·½
     output wire[3:0] arid,
     output wire[31:0] araddr,
     output wire[3:0] arlen,
@@ -80,28 +80,28 @@ module axi_arbitrater (
     input bvalid,
     output bready
 );
-	// picca: å«iå’Œdçš„ä»²è£æ¨¡å—ï¼Œæ”¯æŒå¤šå­—ä¼ è¾“
+	// picca: º¬iºÍdµÄÖÙ²ÃÄ£¿é£¬Ö§³Ö¶à×Ö´«Êä
     wire ar_sel;     //0-> i_cache, 1-> d_cache
 
     reg [31:0] i_rdata_r, d_rdata_r;
 
     //ar 
-    // picca: è¯·æ±‚åˆ†ç±»ï¼Œinst_rreq,data_rreq,data_wreqä¸‰ç§è¯·æ±‚
-    // picca: æŒ‰ç†è¯´åº”è¯¥ä¼˜å…ˆd_cacheï¼Œarçš„ç‰‡é€‰
-    // picca: è¿™é‡Œçš„arvalidï¼Œå…¶å®å¯ä»¥ç†è§£ä¸ºæ˜¯å¦æœ‰req
-    assign ar_sel = ~i_arvalid & d_arvalid ? 1'b1 : 1'b0;   //ä¼˜å…ˆi_cache
+    // picca: ÇëÇó·ÖÀà£¬inst_rreq,data_rreq,data_wreqÈıÖÖÇëÇó
+    // picca: °´ÀíËµÓ¦¸ÃÓÅÏÈd_cache£¬arµÄÆ¬Ñ¡
+    // picca: ÕâÀïµÄarvalid£¬ÆäÊµ¿ÉÒÔÀí½âÎªÊÇ·ñÓĞreq
+    assign ar_sel = ~i_arvalid & d_arvalid ? 1'b1 : 1'b0;   //ÓÅÏÈi_cache
 
     //r
-    // picca: arå†²çªåï¼Œrçš„ç‰‡é€‰
-    // picca: ã€ŠCPUè®¾è®¡å®æˆ˜ã€‹ä¸­æåˆ°çš„æ˜¯0å–æŒ‡ï¼Œ1å–æ•°ï¼Œä¸€èˆ¬åœ°ï¼Œ(outçš„arid)=(inçš„rid)
-    // picca: å®Œç¾åˆ©ç”¨å¤šé€šé“åŠå…¶ä»²è£
+    // picca: ar³åÍ»ºó£¬rµÄÆ¬Ñ¡
+    // picca: ¡¶CPUÉè¼ÆÊµÕ½¡·ÖĞÌáµ½µÄÊÇ0È¡Ö¸£¬1È¡Êı£¬Ò»°ãµØ£¬(outµÄarid)=(inµÄrid)
+    // picca: ÍêÃÀÀûÓÃ¶àÍ¨µÀ¼°ÆäÖÙ²Ã
     wire r_sel;     //0-> i_cache, 1-> d_cache
     assign r_sel = rid[0];
 
     //I CACHE
     assign i_arready = arready & ~ar_sel;
     assign i_rdata = ~r_sel ? rdata : 32'b0;
-    assign i_rlast = ~r_sel ? rlast : 1'b0;  // picca: å—å¤šå­—ä¼ è¾“ç”¨çš„åˆ°
+    assign i_rlast = ~r_sel ? rlast : 1'b0;  // picca: ¿é¶à×Ö´«ÊäÓÃµÄµ½
     assign i_rvalid = ~r_sel ? rvalid : 1'b0;
     
     //D CACHE
@@ -112,11 +112,11 @@ module axi_arbitrater (
 
     //AXI
     //ar
-    assign arid = {3'b0, ar_sel}; // picca: è‡ªå®šä¹‰aridï¼Œæ–¹ä¾¿è¯†åˆ«rid
+    assign arid = {3'b0, ar_sel}; // picca: ×Ô¶¨Òåarid£¬·½±ãÊ¶±ğrid
     assign araddr = ar_sel ? d_araddr : i_araddr;
-    assign arlen = ar_sel ? d_arlen : i_arlen; // picca: å—å¤šå­—ä¼ è¾“åè®®
-    assign arsize  = ar_sel ? d_arsize : 2'b10;         //è¯»ä¸€ä¸ªå­—
-    assign arburst = 2'b10;         //Incrementing burst // picca: å¢é‡çªå‘ä¼ è¾“
+    assign arlen = ar_sel ? d_arlen : i_arlen; // picca: ¿é¶à×Ö´«ÊäĞ­Òé
+    assign arsize  = ar_sel ? d_arsize : 2'b10;         //¶ÁÒ»¸ö×Ö
+    assign arburst = 2'b10;         //Incrementing burst // picca: ÔöÁ¿Í»·¢´«Êä
     assign arlock  = 2'd0;
     assign arcache = 4'd0;
     assign arprot  = 3'd0;

@@ -96,23 +96,37 @@ wire [31:0] cpu_data_rdata;
 wire        cpu_data_addr_ok;
 wire        cpu_data_data_ok;
 
-wire        cache_inst_req  ;
-wire [31:0] cache_inst_addr ;
-wire        cache_inst_wr   ;
-wire [1:0]  cache_inst_size ;
-wire [31:0] cache_inst_wdata;
-wire [31:0] cache_inst_rdata;
-wire        cache_inst_addr_ok;
-wire        cache_inst_data_ok;
+wire [31:0] i_araddr  ;
+wire [7 :0] i_arlen   ;
+wire [2 :0] i_arsize  ;
+wire        i_arvalid ;
+wire        i_arready ;
+wire [31:0] i_rdata   ;
+wire        i_rlast   ;
+wire        i_rvalid  ;
+wire        i_rready  ;
 
-wire        cache_data_req  ;
-wire [31:0] cache_data_addr ;
-wire        cache_data_wr   ;
-wire [1:0]  cache_data_size ;
-wire [31:0] cache_data_wdata;
-wire [31:0] cache_data_rdata;
-wire        cache_data_addr_ok;
-wire        cache_data_data_ok;
+wire [31:0] d_araddr  ;
+wire [7 :0] d_arlen   ;
+wire [2 :0] d_arsize  ;
+wire        d_arvalid ;
+wire        d_arready ;
+wire [31:0] d_rdata   ;
+wire        d_rlast   ;
+wire        d_rvalid  ;
+wire        d_rready  ;
+wire [31:0] d_awaddr  ;
+wire [7 :0] d_awlen   ;
+wire [2 :0] d_awsize  ;
+wire        d_awvalid ;
+wire        d_awready ;
+wire [31:0] d_wdata   ;
+wire [3 :0] d_wstrb   ;
+wire        d_wlast   ;
+wire        d_wvalid  ;
+wire        d_wready  ;
+wire        d_bvalid  ;
+wire        d_bready  ;
 
 wire        ram_data_req  ;
 wire [31:0] ram_data_addr ;
@@ -215,43 +229,68 @@ bridge_1x2 bridge_1x2(
 );
 
 //cache
-cache cache(
+cache cache (
     .clk(clk), .rst(rst),
-    .cpu_inst_req     (cpu_inst_req  ),
-    .cpu_inst_wr      (cpu_inst_wr   ),
-    .cpu_inst_addr    (cpu_inst_paddr ),    //paddr
-    .cpu_inst_size    (cpu_inst_size ),
-    .cpu_inst_wdata   (cpu_inst_wdata),
-    .cpu_inst_rdata   (cpu_inst_rdata),
-    .cpu_inst_addr_ok (cpu_inst_addr_ok),
-    .cpu_inst_data_ok (cpu_inst_data_ok),
+    //mips core
+    .cpu_inst_req     (cpu_inst_req     ),
+    .cpu_inst_wr      (cpu_inst_wr      ),
+    .cpu_inst_size    (cpu_inst_size    ),
+    .cpu_inst_addr    (cpu_inst_addr    ),
+    .cpu_inst_wdata   (cpu_inst_wdata   ),
+    .cpu_inst_rdata   (cpu_inst_rdata   ),
+    .cpu_inst_addr_ok (cpu_inst_addr_ok ),
+    .cpu_inst_data_ok (cpu_inst_data_ok ),
 
-    .cpu_data_req     (ram_data_req  ),
-    .cpu_data_wr      (ram_data_wr   ),
-    .cpu_data_addr    (ram_data_addr ),
-    .cpu_data_wdata   (ram_data_wdata),
-    .cpu_data_size    (ram_data_size ),
-    .cpu_data_rdata   (ram_data_rdata),
-    .cpu_data_addr_ok (ram_data_addr_ok),
-    .cpu_data_data_ok (ram_data_data_ok),
+    .cpu_data_req     (cpu_data_req     ),
+    .cpu_data_wr      (cpu_data_wr      ),
+    .cpu_data_size    (cpu_data_size    ),
+    .cpu_data_addr    (cpu_data_addr    ),
+    .cpu_data_wdata   (cpu_data_wdata   ),
+    .cpu_data_rdata   (cpu_data_rdata   ),
+    .cpu_data_addr_ok (cpu_data_addr_ok ),
+    .cpu_data_data_ok (cpu_data_data_ok ),
 
-    .cache_inst_req     (cache_inst_req  ),
-    .cache_inst_wr      (cache_inst_wr   ),
-    .cache_inst_addr    (cache_inst_addr ),
-    .cache_inst_size    (cache_inst_size ),
-    .cache_inst_wdata   (cache_inst_wdata),
-    .cache_inst_rdata   (cache_inst_rdata),
-    .cache_inst_addr_ok (cache_inst_addr_ok),
-    .cache_inst_data_ok (cache_inst_data_ok),
+    //axi interface
+    // icache
+    // ar
+    .i_araddr  (i_araddr  ),
+    .i_arlen   (i_arlen   ),
+    .i_arsize  (i_arsize  ),
+    .i_arvalid (i_arvalid ),
+    .i_arready (i_arready ),
+    // r
+    .i_rdata   (i_rdata   ),
+    .i_rlast   (i_rlast   ),
+    .i_rvalid  (i_rvalid  ),
+    .i_rready  (i_rready  ),
 
-    .cache_data_req     (cache_data_req  ),
-    .cache_data_wr      (cache_data_wr   ),
-    .cache_data_addr    (cache_data_addr ),
-    .cache_data_wdata   (cache_data_wdata),
-    .cache_data_size    (cache_data_size ),
-    .cache_data_rdata   (cache_data_rdata),
-    .cache_data_addr_ok (cache_data_addr_ok),
-    .cache_data_data_ok (cache_data_data_ok)
+    // dcache
+    // ar
+    .d_araddr  (d_araddr  ),
+    .d_arlen   (d_arlen   ),
+    .d_arsize  (d_arsize  ),
+    .d_arvalid (d_arvalid ),
+    .d_arready (d_arready ),
+    // r
+    .d_rdata   (d_rdata   ),
+    .d_rlast   (d_rlast   ),
+    .d_rvalid  (d_rvalid  ),
+    .d_rready  (d_rready  ),
+    // aw
+    .d_awaddr  (d_awaddr  ),
+    .d_awlen   (d_awlen   ),
+    .d_awsize  (d_awsize  ),
+    .d_awvalid (d_awvalid ),
+    .d_awready (d_awready ),
+    // w
+    .d_wdata   (d_wdata   ),
+    .d_wstrb   (d_wstrb   ),
+    .d_wlast   (d_wlast   ),
+    .d_wvalid  (d_wvalid  ),
+    .d_wready  (d_wready  ),
+    // b
+    .d_bvalid  (d_bvalid  ),
+    .d_bready  (d_bready  )
 );
 
 //根据是否经过Cache，将信号合为一路
@@ -286,67 +325,86 @@ bridge_2x1 bridge_2x1(
     .wrap_data_data_ok (wrap_data_data_ok)
 );
 
-cpu_axi_interface cpu_axi_interface(
-    .clk(clk),
-    .resetn(~rst),
+axi_arbitrater axi_arbitrater(
+    .clk(clk), .rst(rst),
+    //I CACHE 从方
+    .i_araddr(i_araddr)     ,
+    .i_arlen(i_arlen)       ,
+    .i_arvalid(i_arvalid)   ,
+    .i_arready(i_arready)   ,
 
-    .inst_req       (cache_inst_req  ),
-    .inst_wr        (cache_inst_wr   ),
-    .inst_size      (cache_inst_size ),
-    .inst_addr      (cache_inst_addr ),
-    .inst_wdata     (cache_inst_wdata),
-    .inst_rdata     (cache_inst_rdata),
-    .inst_addr_ok   (cache_inst_addr_ok),
-    .inst_data_ok   (cache_inst_data_ok),
+    .i_rdata(i_rdata)       ,
+    .i_rlast(i_rlast)       ,
+    .i_rvalid(i_rvalid)     ,
+    .i_rready(i_rready)     ,
 
-    .data_req       (wrap_data_req  ),
-    .data_wr        (wrap_data_wr   ),
-    .data_size      (wrap_data_size ),
-    .data_addr      (wrap_data_addr ),
-    .data_wdata     (wrap_data_wdata ),
-    .data_rdata     (wrap_data_rdata),
-    .data_addr_ok   (wrap_data_addr_ok),
-    .data_data_ok   (wrap_data_data_ok),
+    //D CACHE 从方
+    .d_araddr(d_araddr)     ,
+    .d_arlen(d_arlen)       ,
+    .d_arsize(d_arsize)     ,
+    .d_arvalid(d_arvalid)   ,
+    .d_arready(d_arready)   ,
 
-    .arid(arid),
-    .araddr(araddr),
-    .arlen(arlen),
-    .arsize(arsize),
-    .arburst(arburst),
-    .arlock(arlock),
-    .arcache(arcache),
-    .arprot(arprot),
-    .arvalid(arvalid),
-    .arready(arready),
+    .d_rdata(d_rdata)       ,
+    .d_rlast(d_rlast)       ,
+    .d_rvalid(d_rvalid)     ,
+    .d_rready(d_rready)     ,
+    //write
+    .d_awaddr(d_awaddr)     ,
+    .d_awlen(d_awlen)       ,
+    .d_awsize(d_awsize)     ,
+    .d_awvalid(d_awvalid)   ,
+    .d_awready(d_awready)   ,
+    
+    .d_wdata(d_wdata)       ,
+    .d_wstrb(d_wstrb)       ,
+    .d_wlast(d_wlast)       ,
+    .d_wvalid(d_wvalid)     ,
+    .d_wready(d_wready)     ,
 
-    .rid(rid),
-    .rdata(rdata),
-    .rresp(rresp),
-    .rlast(rlast),
-    .rvalid(rvalid),
-    .rready(rready),
-
-    .awid(awid),
-    .awaddr(awaddr),
-    .awlen(awlen),
-    .awsize(awsize),
-    .awburst(awburst),
-    .awlock(awlock),
-    .awcache(awcache),
-    .awprot(awprot),
-    .awvalid(awvalid),
-    .awready(awready),
-
-    .wid(wid),
-    .wdata(wdata),
-    .wstrb(wstrb),
-    .wlast(wlast),
-    .wvalid(wvalid),
-    .wready(wready),
-
-    .bid(bid),
-    .bresp(bresp),
-    .bvalid(bvalid),
+    .d_bvalid(d_bvalid)     ,
+    .d_bready(d_bready)     ,
+    
+    //Outer 主方
+    .arid(arid)             ,
+    .araddr(araddr)         ,
+    .arlen(arlen)           ,
+    .arsize(arsize)         ,
+    .arburst(arburst)       ,
+    .arlock(arlock)         ,
+    .arcache(arcache)       ,
+    .arprot(arprot)         ,
+    .arvalid(arvalid)       ,
+    .arready(arready)       ,
+                
+    .rid(rid)               ,
+    .rdata(rdata)           ,
+    .rresp(rresp)           ,
+    .rlast(rlast)           ,
+    .rvalid(rvalid)         ,
+    .rready(rready)         ,
+               
+    .awid(awid)             ,
+    .awaddr(awaddr)         ,
+    .awlen(awlen)           ,
+    .awsize(awsize)         ,
+    .awburst(awburst)       ,
+    .awlock(awlock)         ,
+    .awcache(awcache)       ,
+    .awprot(awprot)         ,
+    .awvalid(awvalid)       ,
+    .awready(awready)       ,
+    
+    .wid(wid)               ,
+    .wdata(wdata)           ,
+    .wstrb(wstrb)           ,
+    .wlast(wlast)           ,
+    .wvalid(wvalid)         ,
+    .wready(wready)         ,
+    
+    .bid(bid)               ,
+    .bresp(bresp)           ,
+    .bvalid(bvalid)         ,
     .bready(bready)
 );
 
