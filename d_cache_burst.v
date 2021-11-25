@@ -1,5 +1,5 @@
 // 类sram接口 转 类axi接口
-module d_cache_burst (
+module d_cache_burst_v2 (
     input wire clk, rst, // except,no_cache,       // 这里不用实现 except 和 no_cache 两个接口
     //mips core --> cache
     input  wire        cpu_data_req     ,      //Mipscore发起读写请求  mips->cache
@@ -90,8 +90,8 @@ module d_cache_burst (
     
 //判断是否命中
     wire hit, miss;
-    assign hit  = cpu_data_req & c_valid & (c_tag == tag);  //cache line的valid位为1，且tag与地址中tag相等
-    assign miss = cpu_data_req & ~hit;
+    assign hit  = c_valid & (c_tag == tag);  //cache line的valid位为1，且tag与地址中tag相等
+    assign miss = ~hit;
 
 //读或写
     wire read, write;
@@ -107,16 +107,24 @@ module d_cache_burst (
         end
         else begin
             case(state)
-                IDLE:   state <= cpu_data_req & read & miss & !c_dirty ? RM :                            // 读缺失且该位没有被修改
-                                 cpu_data_req & read & miss &  c_dirty ? WM :                            // 读缺失且该位修改过
-                                 cpu_data_req & read & hit  ? IDLE :                                     // 读命中
-                                 // cpu_data_req & write & miss & c_dirty & !write_miss_nodirty_save ? WM : // 写缺失并且dirty才写内存
-                                 cpu_data_req & write & miss & c_dirty ? WM : // 写缺失并且dirty才写内存
-                                 IDLE;   
+                // 新的理解
+                IDLE:   state <= cpu_data_req & miss & !c_dirty ? RM :
+                                 cpu_data_req & miss &  c_dirty ? WM :
+                                 IDLE;
                 RM:     state <= read_finish ? IDLE : RM;
-                WM:     state <= read & miss & c_dirty & write_finish ? RM :                              // 读缺失读脏，写存完毕后读存
-                                 write_finish ? IDLE :                                     // 写缺失写脏，写存完毕后恢复IDLE
-                                 WM;
+                WM:     state <= miss & c_dirty & write_finish ? RM : WM;
+                
+                // 不考虑缓存一致性
+                // IDLE:   state <= cpu_data_req & read & miss & !c_dirty ? RM :                            // 读缺失且该位没有被修改
+                //                  cpu_data_req & read & miss &  c_dirty ? WM :                            // 读缺失且该位修改过
+                //                  cpu_data_req & read & hit  ? IDLE :                                     // 读命中
+                //                  // cpu_data_req & write & miss & c_dirty & !write_miss_nodirty_save ? WM : // 写缺失并且dirty才写内存
+                //                  cpu_data_req & write & miss & c_dirty ? WM : // 写缺失并且dirty才写内存
+                //                  IDLE;   
+                // RM:     state <= read & read_finish ? IDLE : RM;
+                // WM:     state <= read & miss & c_dirty & write_finish ? RM :                              // 读缺失读脏，写存完毕后读存
+                //                  write_finish ? IDLE :                                     // 写缺失写脏，写存完毕后恢复IDLE
+                //                  WM;
             endcase
         end
     end
@@ -126,7 +134,8 @@ module d_cache_burst (
     reg  raddr_rcv;      //地址接收成功(addr_ok)后到结束,代表地址已经收到了
     wire read_one; // 写的每一拍数据成功
     wire read_finish;   //数据接收成功(data_ok)，即读请求结束
-    
+    reg  read_finish_save;
+
     reg  write_req;     
     reg  waddr_rcv; 
     reg  wdata_rcv;     
@@ -159,6 +168,10 @@ module d_cache_burst (
         wdata_rcv<= rst        ? 1'b0 :
                     write_req && wvalid && wready && wlast ? 1'b1 :
                     write_finish    ? 1'b0 : wdata_rcv;
+        
+        read_finish_save <= rst ? 1'b0:
+                            read_finish ? 1'b1 :
+                            1'b0;
     end
     
 // 数据对接
@@ -179,10 +192,11 @@ end
 
 // CPU接口的输出对接
 wire no_mem;
-assign no_mem = cpu_data_req && (state==IDLE) && ((read & hit) | (write & !(miss & c_dirty)));
+assign no_mem = (state==IDLE) && cpu_data_req && hit;
 assign cpu_data_rdata   = hit ? cache_block[currused][index][blocki] : rdata_blocki; 
-assign cpu_data_addr_ok = no_mem | (arvalid && arready) ||(awvalid && awready); // FIXME 感觉这里要拖到3个周期
-assign cpu_data_data_ok = no_mem || (raddr_rcv && rvalid && rready && rlast) || (waddr_rcv && bvalid && bready);
+assign cpu_data_addr_ok = no_mem | (read && arvalid && arready) ||(write && awvalid && awready); // FIXME 感觉这里要拖到3个周期
+// assign cpu_data_data_ok = no_mem || (raddr_rcv && rvalid && rready && rlast) || (waddr_rcv && bvalid && bready);
+assign cpu_data_data_ok = no_mem || read_finish_save; // 最好延迟一个周期，遇到读存blocki=7的数据，不能够及时返回
 
 // 类AXI接口的输出对接
 // 读请求
@@ -250,37 +264,31 @@ assign bready  = waddr_rcv;// output wire
         else begin
             // 缺失涉及到替换way，涉及到访存后再写的（**地址握手**），都需要使用_save信号
             if(read_one) begin  // 读缺失，读存结束，此时**地址握手**已经完成
-                // $display("读缺失读存结束"); 
+                // $display("缺失读存"); // 直接写
                 cache_valid[currused_save][index_save] <= 1'b1;             //将Cache line置为有效
                 cache_tag  [currused_save][index_save] <= tag_save;
                 cache_block[currused_save][index_save][ri] <= rdata; //写入Cache line
                 cache_dirty[currused_save][index_save] <= 1'b0;
                 cache_lastused[index_save] <= currused_save;
             end
-            else if(cpu_data_req & read & hit) begin
+            if(cpu_data_req & read & hit) begin
                 // $display("读命中"); // 直接写
                 cache_lastused[index] <= currused;
             end
-            else if(cpu_data_req & write & hit) begin   // 写命中时需要写Cache
+            if(cpu_data_req & write & hit) begin   // 写命中时需要写Cache
                 // $display("写命中"); // 直接写
                 cache_block[currused][index][blocki] <= write_cache_data;             // 写入Cache line，使用index而不是index_save
                 cache_dirty[currused][index] <= 1'b1;                         // 写命中时需要将脏位置为1
                 cache_lastused[index] <= currused;
             end
-            else if(write & (state==WM) & write_finish) begin   // 写缺失会有一个写存，**地址握手**成功后cpu_data_req会拉下来
-                // $display("写缺失写脏");
-                cache_block[currused_save][index_save][blocki_save] <= write_cache_data_save;
-                cache_dirty[currused_save][index_save] <= 1'b1;
+            if(write & (state==RM) & read_finish) begin
+                // $display("写缺失，先读存后写cache");
                 cache_lastused[index_save] <= currused_save;
+                cache_valid[currused_save][index_save] <= 1'b1;             //将Cache line置为有效
+                cache_dirty[currused_save][index_save] <= 1'b1;
+                cache_tag  [currused_save][index_save] <= tag_save;
+                cache_block[currused_save][index_save][blocki_save] <= write_cache_data_save;
             end 
-            else if(cpu_data_req & write & (state==IDLE)) begin   // 写缺失+干净后的直接写操作
-                // $display("写缺失写干净"); // 直接写
-                cache_valid[currused][index] <= 1'b1;             //将Cache line置为有效
-                cache_tag  [currused][index] <= tag;
-                cache_block[currused][index][blocki] <= write_cache_data;
-                cache_dirty[currused][index] <= 1'b1;
-                cache_lastused[index] <= currused;
-            end
         end
     end
 endmodule
