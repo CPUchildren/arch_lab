@@ -1,5 +1,5 @@
 // 类sram接口 转 类axi接口
-module d_cache_burst_v2 (
+module d_cache_burst (
     input wire clk, rst, // except,no_cache,       // 这里不用实现 except 和 no_cache 两个接口
     //mips core --> cache
     input  wire        cpu_data_req     ,      //Mipscore发起读写请求  mips->cache
@@ -195,8 +195,9 @@ wire no_mem;
 assign no_mem = (state==IDLE) && cpu_data_req && hit;
 assign cpu_data_rdata   = hit ? cache_block[currused][index][blocki] : rdata_blocki; 
 assign cpu_data_addr_ok = no_mem | (read && arvalid && arready) ||(write && awvalid && awready); // FIXME 感觉这里要拖到3个周期
-// assign cpu_data_data_ok = no_mem || (raddr_rcv && rvalid && rready && rlast) || (waddr_rcv && bvalid && bready);
-assign cpu_data_data_ok = no_mem || read_finish_save; // 最好延迟一个周期，遇到读存blocki=7的数据，不能够及时返回
+// assign cpu_data_data_ok = no_mem || (raddr_rcv && rvalid && rready && rlast) || (waddr_rcv && bvalid && bready); // 按照状态机模式，缺失访存，都以RM收尾，所以只需要判断RM即可。
+// assign cpu_data_data_ok = no_mem || read_finish_save; // 最好延迟一个周期，遇到读存blocki=7的数据，不能够及时返回 // FIXME 感觉这样写会多很多周期，可以做一个判断吗？如果blocki==7，就等一下；<7，就直接返回read_finish
+assign cpu_data_data_ok = no_mem || (blocki_save==3'b111 ? read_finish_save : read_finish); // 最好延迟一个周期，遇到读存blocki=7的数据，不能够及时返回 // FIXME 感觉这样写会多很多周期，可以做一个判断吗？如果blocki==7，就等一下；<7，就直接返回read_finish
 
 // 类AXI接口的输出对接
 // 读请求

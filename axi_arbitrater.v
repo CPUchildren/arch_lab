@@ -84,13 +84,12 @@ module axi_arbitrater (
 	// picca: 含i和d的仲裁模块，支持多字传输
     wire ar_sel;     //0-> i_cache, 1-> d_cache
 
-    reg [31:0] i_rdata_r, d_rdata_r;
-
     //ar 
     // picca: 请求分类，inst_rreq,data_rreq,data_wreq三种请求
     // picca: 按理说应该优先d_cache，ar的片选
     // picca: 这里的arvalid，其实可以理解为是否有req
-    assign ar_sel = ~i_arvalid & d_arvalid ? 1'b1 : 1'b0;   //优先i_cache
+    // assign ar_sel = ~i_arvalid & d_arvalid ? 1'b1 : 1'b0;   //优先i_cache
+    assign ar_sel = ~d_arvalid & i_arvalid ? 1'b0 : 1'b1;   //优先d_cache
 
     //r
     // picca: ar冲突后，r的片选
