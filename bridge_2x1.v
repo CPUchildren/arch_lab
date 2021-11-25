@@ -43,4 +43,6 @@ module bridge_2x1 (
     assign wrap_data_addr  = no_dcache ? conf_data_addr  : ram_data_addr ;
     assign wrap_data_wdata = no_dcache ? conf_data_wdata : ram_data_wdata;
 
+    
+
 endmodule

@@ -14,7 +14,7 @@ module i_cache_burst (
     // icache 主方
     // 读请求
     output wire [31:0] araddr       ,
-    output wire [7 :0] arlen        ,
+    output wire [3 :0] arlen        ,
     output wire [2 :0] arsize       ,
     output wire        arvalid      ,
     input  wire        arready      ,
@@ -68,10 +68,10 @@ module i_cache_burst (
 
 //读或写
     wire read;
-    assign read  = cpu_inst_req & ~cpu_inst_wr;
+    assign read  = ~cpu_inst_wr;
 
 //FSM
-    localparam IDLE = 2'b00, RM = 2'b01, WM = 2'b11;
+    parameter IDLE = 2'b00, RM = 2'b01, WM = 2'b11;
     reg [1:0] state;
     always @(posedge clk) begin
         if(rst) begin
@@ -80,7 +80,7 @@ module i_cache_burst (
         else begin
             case(state)
                 IDLE:   state <= cpu_inst_req & read & miss ? RM : IDLE;
-                RM:     state <= read & read_finish ? IDLE : RM;
+                RM:     state <= read_finish ? IDLE : RM;
             endcase
         end
     end
@@ -97,7 +97,7 @@ module i_cache_burst (
     always @(posedge clk) begin
         // 读事务
         read_req <= rst ? 1'b0 :
-                    (state==RM) & ~read_req ? 1'b1 :
+                    (state==RM)&~read_req ? 1'b1 :  // 过滤一层判断
                     read_finish ? 1'b0 :read_req;
         
         raddr_rcv<= rst ? 1'b0 :
@@ -112,23 +112,23 @@ always @(posedge clk) begin
     ri <= rst ? 1'd0:
           read_finish ? 1'b0:
           read_one ? ri+1 : ri;
+    // BUG 感觉这里会延迟一个周期
     rdata_blocki <= rst ? 32'b0:
-                    read_one && ri==blocki ? rdata:
+                    (read_one && ri==blocki) ? rdata:
                     rdata_blocki;
 end
 
-
 // CPU接口的输出对接
 wire no_mem;
-assign no_mem = cpu_inst_req & read & hit;
+assign no_mem = (state==IDLE) && cpu_inst_req & read & hit;
 assign cpu_inst_rdata   = no_mem ? cache_block[currused][index][blocki] : rdata_blocki; 
 assign cpu_inst_addr_ok = no_mem | (arvalid && arready);
-assign cpu_inst_data_ok = no_mem | (raddr_rcv && rvalid && rready);
+assign cpu_inst_data_ok = no_mem | (raddr_rcv && rvalid && rready && rlast);
 
 // 类AXI接口的输出对接
 // 读请求
 assign araddr  = {tag,index}<<OFFSET_WIDTH;// output wire [31:0] 
-assign arlen   = BLOCK_NUM-1; // output wire [7 :0] 
+assign arlen   = BLOCK_NUM-1; // output wire [3 :0] 
 assign arsize  = cpu_inst_size;// output wire [2 :0] 
 assign arvalid = read_req && !raddr_rcv;// output wire
 // 读响应
@@ -170,12 +170,13 @@ assign rready  = raddr_rcv;// output wire
             // 缺失涉及到替换way，涉及到访存后再写的（**地址握手**），都需要使用_save信号
             if(read_one) begin  // 读缺失，读存结束，此时**地址握手**已经完成
                 // $display("读缺失读存结束"); 
-                cache_valid[!c_lastused_save][index_save] <= 1'b1;             //将Cache line置为有效
-                cache_tag  [!c_lastused_save][index_save] <= tag_save;
-                cache_block[!c_lastused_save][index_save][ri] <= rdata; //写入Cache line
-                cache_lastused[index_save] <= !c_lastused_save;
+                // $display("currused_save = %h",currused_save);
+                cache_valid[currused_save][index_save] <= 1'b1;             //将Cache line置为有效
+                cache_tag  [currused_save][index_save] <= tag_save;
+                cache_block[currused_save][index_save][ri] <= rdata; //写入Cache line
+                cache_lastused[index_save] <= currused_save;
             end
-            else if(read & hit) begin
+            else if(cpu_inst_req & read & hit) begin
                 // $display("读命中"); 更新lastused
                 cache_lastused[index] <= currused;
             end

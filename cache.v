@@ -23,7 +23,7 @@ module cache (
     // icache
     // ar
     output wire [31:0] i_araddr         ,
-    output wire [7 :0] i_arlen          ,
+    output wire [3 :0] i_arlen          ,
     output wire [2 :0] i_arsize         ,
     output wire        i_arvalid        ,
     input  wire        i_arready        ,
@@ -36,7 +36,7 @@ module cache (
     // dcache
     // ar
     output wire [31:0] d_araddr       ,
-    output wire [7 :0] d_arlen        ,
+    output wire [3 :0] d_arlen        ,
     output wire [2 :0] d_arsize       ,
     output wire        d_arvalid      ,
     input  wire        d_arready      ,
@@ -47,7 +47,7 @@ module cache (
     output wire        d_rready       ,
     // aw
     output wire [31:0] d_awaddr       ,
-    output wire [7 :0] d_awlen        ,
+    output wire [3 :0] d_awlen        ,
     output wire [2 :0] d_awsize       ,
     output wire        d_awvalid      ,
     input  wire        d_awready      ,
